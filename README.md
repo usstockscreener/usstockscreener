@@ -1,4 +1,4 @@
-[index.html](https://github.com/user-attachments/files/28978215/index.html)
+[index (1).html](https://github.com/user-attachments/files/28978364/index.1.html)
 <!DOCTYPE html>
 <html lang="pt-BR" style="background:#0B0F1C">
 <head>
@@ -271,6 +271,17 @@
       .controls, .stats-bar, .legend { padding: 8px 12px; }
       .mgrid { grid-template-columns: 1fr; }
     }
+    .pagination { display:flex; align-items:center; justify-content:space-between; padding:10px 20px; border-top:1px solid #1E2640; background:#111624; flex-wrap:wrap; gap:8px; }
+    .pagination-info { font-size:11px; color:#4A5578; }
+    .pagination-info b { color:#7E8DB0; }
+    .page-btns { display:flex; gap:4px; }
+    .page-btn { height:28px; min-width:28px; padding:0 8px; font-size:11px; border-radius:5px; border:1px solid #252D45; background:#0B0F1C; color:#7E8DB0; cursor:pointer; font-family:'Inter',sans-serif; transition:all 0.15s; }
+    .page-btn:hover:not(:disabled) { background:#181D2E; color:#E2E8F5; }
+    .page-btn.active { background:#1A2240; border-color:#4F8EF7; color:#4F8EF7; font-weight:500; }
+    .page-btn:disabled { opacity:0.3; cursor:not-allowed; }
+    .load-progress { font-size:11px; color:#4F8EF7; padding:6px 20px 8px; background:#0B0F1C; border-bottom:1px solid #1E2640; display:none; }
+    .load-progress-bar { height:3px; background:#1E2640; margin-top:5px; border-radius:2px; overflow:hidden; }
+    .load-progress-fill { height:100%; background:#4F8EF7; border-radius:2px; transition:width 0.3s; width:0%; }
   </style>
 </head>
 <body style="background:#0B0F1C;color:#E2E8F5;min-height:100vh">
@@ -326,6 +337,15 @@ input[type=text], select { background-color: #181D2E !important; color: #E2E8F5 
       <option value="mid">P/L 15–40</option>
       <option value="high">P/L acima de 40</option>
     </select>
+    <select id="per-page" onchange="changePerPage()">
+      <option value="20" selected>20 empresas</option>
+      <option value="40">40 empresas</option>
+      <option value="60">60 empresas</option>
+      <option value="80">80 empresas</option>
+      <option value="100">100 empresas</option>
+      <option value="200">200 empresas</option>
+      <option value="300">300 empresas (lento)</option>
+    </select>
   </div>
 
   <!-- ██████████  STATS + LEGENDA  ██████████ -->
@@ -345,7 +365,11 @@ input[type=text], select { background-color: #181D2E !important; color: #E2E8F5 
 
   <!-- ██████████  LOADING  ██████████ -->
   <div id="loading-msg" class="loading" style="display:none">
-    <span class="spinner"></span>Buscando dados do Yahoo Finance — aguarde alguns segundos...
+    <span class="spinner"></span>Buscando dados do Yahoo Finance...
+  </div>
+  <div class="load-progress" id="load-progress">
+    <span id="load-progress-text">Carregando...</span>
+    <div class="load-progress-bar"><div class="load-progress-fill" id="load-progress-fill"></div></div>
   </div>
 
   <!-- ██████████  TABELA  ██████████ -->
@@ -371,6 +395,12 @@ input[type=text], select { background-color: #181D2E !important; color: #E2E8F5 
       </thead>
       <tbody id="tbody"></tbody>
     </table>
+  </div>
+
+  <!-- ██████████  PAGINAÇÃO  ██████████ -->
+  <div class="pagination" id="pagination">
+    <div class="pagination-info" id="pagination-info">—</div>
+    <div class="page-btns" id="page-btns"></div>
   </div>
 
   <!-- ██████████  AD BANNER RODAPÉ  ██████████ -->
@@ -512,57 +542,108 @@ input[type=text], select { background-color: #181D2E !important; color: #E2E8F5 
     return `<div class="mbar"><div class="mbar-track"><div class="mbar-fill" style="width:${bar}%;background:${color}"></div></div><span class="mbar-val ${cls}">${pct.toFixed(1)}%</span></div>`;
   }
 
-  // ─── RENDER TABELA ──────────────────────────────────────────────────────────
+  // ─── RENDER TABELA COM PAGINAÇÃO ────────────────────────────────────────────
+  let currentPage = 1;
+  let perPage = 20;
+
+  function getPerPage() { return parseInt(document.getElementById('per-page').value) || 20; }
+
+  function changePerPage() {
+    perPage = getPerPage();
+    currentPage = 1;
+    if (allData.length > 0) { renderTable(); return; }
+    loadData();
+  }
+
   function renderTable() {
     const q   = document.getElementById('search').value.toLowerCase();
     const sec = document.getElementById('filter-sector').value;
     const vf  = document.getElementById('filter-verdict').value;
     const pef = document.getElementById('filter-pe').value;
+    perPage   = getPerPage();
 
-    let data = allData.filter(s => {
+    let filtered = allData.filter(s => {
       if (q && !s.symbol.toLowerCase().includes(q) && !(s.name||'').toLowerCase().includes(q)) return false;
       if (sec && s.sector !== sec) return false;
       if (vf && getVerdict(s.price, s.fairPrice).code !== vf) return false;
-      if (pef === 'low'  && !(s.pe > 0 && s.pe < 15))  return false;
+      if (pef === 'low'  && !(s.pe > 0 && s.pe < 15))    return false;
       if (pef === 'mid'  && !(s.pe >= 15 && s.pe <= 40)) return false;
-      if (pef === 'high' && !(s.pe > 40))                return false;
+      if (pef === 'high' && !(s.pe > 40))                 return false;
       return true;
     });
 
-    data.sort((a,b) => {
+    filtered.sort((a,b) => {
       let av=a[sortCol], bv=b[sortCol];
       if (av==null) return 1; if (bv==null) return -1;
       if (typeof av==='string') return sortDir*av.localeCompare(bv);
       return sortDir*(av-bv);
     });
 
-    document.getElementById('tbody').innerHTML = data.map(s => {
-      const cc = (s.change1d||0)>=0 ? 'up':'dn';
-      const cs = (s.change1d||0)>=0 ? '+':'';
-      const peCls = s.pe>0&&s.pe<15 ? 'up' : s.pe>40 ? 'dn' : 'neu';
-      const roeCls= s.roe>0.15 ? 'up' : s.roe<0 ? 'dn' : 'neu';
+    const totalPages = Math.max(1, Math.ceil(filtered.length / perPage));
+    if (currentPage > totalPages) currentPage = 1;
+    const start = (currentPage - 1) * perPage;
+    const pageData = filtered.slice(start, start + perPage);
+
+    document.getElementById('tbody').innerHTML = pageData.map(s => {
+      const cc  = (s.change1d||0)>=0 ? 'up':'dn';
+      const cs  = (s.change1d||0)>=0 ? '+':'';
+      const pec = s.pe>0&&s.pe<15 ? 'up' : s.pe>40 ? 'dn' : 'neu';
+      const rec = s.roe>0.15 ? 'up' : s.roe<0 ? 'dn' : 'neu';
       return `<tr onclick="openModal('${s.symbol}')">
         <td class="sym">${s.symbol}</td>
         <td><div class="name-cell">${s.name||'—'}</div></td>
         <td><span class="sec-badge">${s.sector||'—'}</span></td>
-        <td style="font-family:var(--mono);font-weight:500">$${(s.price||0).toFixed(2)}</td>
+        <td style="font-family:'DM Mono',monospace;font-weight:500">$${(s.price||0).toFixed(2)}</td>
         <td>${thermCell(s.price, s.fairPrice)}</td>
         <td class="${cc}">${cs}${fmt(s.change1d)}%</td>
-        <td style="font-family:var(--mono)">${fmtB(s.marketCap)}</td>
-        <td class="${peCls}" style="font-family:var(--mono)">${s.pe?fmt(s.pe,1):'—'}</td>
-        <td style="font-family:var(--mono)">${s.pb?fmt(s.pb,1):'—'}</td>
-        <td style="font-family:var(--mono)">${s.ps?fmt(s.ps,1):'—'}</td>
-        <td style="font-family:var(--mono)">${s.evEbitda?fmt(s.evEbitda,1):'—'}</td>
-        <td class="${roeCls}" style="font-family:var(--mono)">${s.roe?fmtP(s.roe):'—'}</td>
+        <td style="font-family:'DM Mono',monospace">${fmtB(s.marketCap)}</td>
+        <td class="${pec}" style="font-family:'DM Mono',monospace">${s.pe?fmt(s.pe,1):'—'}</td>
+        <td style="font-family:'DM Mono',monospace">${s.pb?fmt(s.pb,1):'—'}</td>
+        <td style="font-family:'DM Mono',monospace">${s.ps?fmt(s.ps,1):'—'}</td>
+        <td style="font-family:'DM Mono',monospace">${s.evEbitda?fmt(s.evEbitda,1):'—'}</td>
+        <td class="${rec}" style="font-family:'DM Mono',monospace">${s.roe?fmtP(s.roe):'—'}</td>
         <td>${mbarCell(s.netMargin)}</td>
-        <td class="${(s.divYield||0)>0.03?'up':'neu'}" style="font-family:var(--mono)">${s.divYield?fmtP(s.divYield):'—'}</td>
+        <td class="${(s.divYield||0)>0.03?'up':'neu'}" style="font-family:'DM Mono',monospace">${s.divYield?fmtP(s.divYield):'—'}</td>
       </tr>`;
     }).join('');
 
-    document.getElementById('count-badge').textContent = data.length + ' ações';
+    // Stats
+    document.getElementById('count-badge').textContent = filtered.length + ' ações';
     document.getElementById('s-under').textContent = allData.filter(s=>getVerdict(s.price,s.fairPrice).code==='sub').length;
     document.getElementById('s-fair').textContent  = allData.filter(s=>getVerdict(s.price,s.fairPrice).code==='fair').length;
     document.getElementById('s-over').textContent  = allData.filter(s=>getVerdict(s.price,s.fairPrice).code==='over').length;
+
+    // Info paginação
+    const from = filtered.length ? start+1 : 0;
+    const to   = Math.min(start+perPage, filtered.length);
+    document.getElementById('pagination-info').innerHTML =
+      `Mostrando <b>${from}–${to}</b> de <b>${filtered.length}</b> empresas carregadas`;
+
+    // Botões paginação
+    const btns = document.getElementById('page-btns');
+    btns.innerHTML = '';
+    const addBtn = (label, page, disabled, active) => {
+      const b = document.createElement('button');
+      b.className = 'page-btn' + (active?' active':'');
+      b.textContent = label;
+      b.disabled = disabled;
+      b.onclick = () => { currentPage = page; renderTable(); window.scrollTo({top:0,behavior:'smooth'}); };
+      btns.appendChild(b);
+    };
+    addBtn('← Ant.', currentPage-1, currentPage===1, false);
+    const range = [];
+    for (let i=1; i<=totalPages; i++) {
+      if (i===1||i===totalPages||Math.abs(i-currentPage)<=2) range.push(i);
+      else if (range[range.length-1]!=='…') range.push('…');
+    }
+    range.forEach(p => {
+      if (p==='…') {
+        const sp = document.createElement('span');
+        sp.textContent='…'; sp.style.cssText='color:#4A5578;padding:0 4px;font-size:11px;line-height:28px';
+        btns.appendChild(sp);
+      } else addBtn(p, p, false, p===currentPage);
+    });
+    addBtn('Próx. →', currentPage+1, currentPage===totalPages, false);
   }
 
   // ─── MODAL ──────────────────────────────────────────────────────────────────
@@ -675,12 +756,35 @@ input[type=text], select { background-color: #181D2E !important; color: #E2E8F5 
 
   // ─── CARREGAR DADOS REAIS (YAHOO FINANCE) ───────────────────────────────────
   async function loadData() {
-    document.getElementById('loading-msg').style.display='block';
-    document.getElementById('tbody').innerHTML='';
-    allData=[];
-    for (const sym of TICKERS) {
+    perPage = getPerPage();
+    const limit = perPage; // busca apenas a quantidade selecionada
+    const tickersToFetch = TICKERS.slice(0, limit);
+    const total = tickersToFetch.length;
+
+    allData = [];
+    currentPage = 1;
+    document.getElementById('tbody').innerHTML = '';
+    document.getElementById('loading-msg').style.display = 'none';
+    const prog = document.getElementById('load-progress');
+    const progText = document.getElementById('load-progress-text');
+    const progFill = document.getElementById('load-progress-fill');
+    prog.style.display = 'block';
+
+    for (let i = 0; i < tickersToFetch.length; i++) {
+      const sym = tickersToFetch[i];
+      progText.textContent = `Carregando ${i+1} de ${total} empresas (${sym})...`;
+      progFill.style.width = ((i+1)/total*100) + '%';
       try {
-        const r = await fetch(`https://query1.finance.yahoo.com/v7/finance/quote?symbols=${sym}&fields=shortName,regularMarketPrice,regularMarketChangePercent,marketCap,trailingPE,priceToBook,priceToSalesTrailing12Months,enterpriseToEbitda,returnOnEquity,returnOnAssets,grossMargins,netMargins,operatingMargins,debtToEquity,currentRatio,trailingEps,freeCashflow,sharesOutstanding,dividendYield,averageVolume,pegRatio,revenueGrowth,sector`);
+        // Try multiple proxies/endpoints for CORS bypass
+        const FIELDS = 'shortName,regularMarketPrice,regularMarketChangePercent,marketCap,trailingPE,priceToBook,priceToSalesTrailing12Months,enterpriseToEbitda,returnOnEquity,returnOnAssets,grossMargins,netMargins,operatingMargins,debtToEquity,currentRatio,trailingEps,freeCashflow,sharesOutstanding,dividendYield,averageVolume,pegRatio,revenueGrowth,sector';
+        const YAHOO_URL = `https://query1.finance.yahoo.com/v7/finance/quote?symbols=${sym}&fields=${FIELDS}&crumb=`;
+        const PROXY1 = `https://corsproxy.io/?${encodeURIComponent(YAHOO_URL)}`;
+        const PROXY2 = `https://api.allorigins.win/raw?url=${encodeURIComponent(YAHOO_URL)}`;
+        let r, lastErr;
+        for (const url of [PROXY1, PROXY2]) {
+          try { r = await fetch(url, {headers:{'User-Agent':'Mozilla/5.0'}}); if(r.ok) break; } catch(e){ lastErr=e; r=null; }
+        }
+        if (!r || !r.ok) throw lastErr || new Error('All proxies failed');
         const j = await r.json();
         const q = j?.quoteResponse?.result?.[0];
         if (q) {
@@ -703,11 +807,12 @@ input[type=text], select { background-color: #181D2E !important; color: #E2E8F5 
       } catch(e){}
       await new Promise(r=>setTimeout(r,110));
     }
+
+    prog.style.display = 'none';
     const secs = [...new Set(allData.map(s=>s.sector).filter(Boolean))].sort();
     const sel = document.getElementById('filter-sector');
     sel.innerHTML = '<option value="">Todos os setores</option>'+secs.map(s=>`<option value="${s}">${s}</option>`).join('');
-    document.getElementById('s-updated').textContent = new Date().toLocaleTimeString('pt-BR');
-    document.getElementById('loading-msg').style.display='none';
+    document.getElementById('s-updated').textContent = new Date().toLocaleTimeString('pt-BR') + ' (' + total + ' empresas)';
     renderTable();
   }
 
