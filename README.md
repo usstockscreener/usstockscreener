@@ -1,4 +1,4 @@
-[index (7).html](https://github.com/user-attachments/files/28978895/index.7.html)
+[index (8).html](https://github.com/user-attachments/files/28978996/index.8.html)
 <!DOCTYPE html>
 <html lang="pt-BR" style="background:#1a2744">
 <head>
@@ -357,7 +357,7 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
     <span class="chip c-green">Subvalorizadas: <b id="s-under">—</b></span>
     <span class="chip">Preço Justo: <b id="s-fair">—</b></span>
     <span class="chip c-red">Sobrevalorizadas: <b id="s-over">—</b></span>
-    <span class="chip">Atualizado: <b id="s-updated">demo</b></span>
+    <span class="chip">Atualizado: <b id="s-updated">carregando...</b></span>
   </div>
 
   <div class="legend">
@@ -640,7 +640,7 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
     }).join('');
 
     // Stats
-    document.getElementById('count-badge').textContent = TICKERS.length + ' empresas';
+    document.getElementById('count-badge').textContent = allData.length + ' / ' + TICKERS.length + ' empresas';
     document.getElementById('s-under').textContent = allData.filter(s=>getVerdict(s.price,s.fairPrice).code==='sub').length;
     document.getElementById('s-fair').textContent  = allData.filter(s=>getVerdict(s.price,s.fairPrice).code==='fair').length;
     document.getElementById('s-over').textContent  = allData.filter(s=>getVerdict(s.price,s.fairPrice).code==='over').length;
@@ -898,10 +898,9 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
         }
       }
 
-      if (b % 3 === 0 || b === batches.length - 1) {
-        updateSectors();
-        renderTable();
-      }
+      // Renderiza após cada lote — as 10 primeiras aparecem em ~2s
+      updateSectors();
+      renderTable();
 
       await new Promise(r => setTimeout(r, 150));
     }
@@ -910,40 +909,15 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
     progFill.style.width = '100%';
     updateSectors();
     renderTable();
-    document.getElementById('s-updated').textContent = new Date().toLocaleTimeString('pt-BR') + ' · ' + allData.length + ' empresas';
+    document.getElementById('s-updated').textContent = new Date().toLocaleTimeString('pt-BR');
+    document.getElementById('count-badge').textContent = allData.length + ' / ' + TICKERS.length + ' empresas';
   }
 
-  // ─── DADOS DEMO (carrega imediatamente) ─────────────────────────────────────
-  const DEMO = [
-    {symbol:'AAPL',name:'Apple Inc.',sector:'Technology',price:213.49,change1d:0.85,marketCap:3.27e12,pe:34.2,pb:48.1,ps:8.1,evEbitda:24.3,roe:1.72,roa:0.28,grossMargin:0.461,netMargin:0.257,opMargin:0.311,debtEq:1.51,currentRatio:0.98,eps:6.23,fcfPerShare:6.97,divYield:0.0051,avgVol:57e6,peg:2.8,growthRate:0.09},
-    {symbol:'MSFT',name:'Microsoft Corp.',sector:'Technology',price:447.83,change1d:1.21,marketCap:3.33e12,pe:37.8,pb:13.4,ps:14.2,evEbitda:28.1,roe:0.35,roa:0.17,grossMargin:0.697,netMargin:0.355,opMargin:0.451,debtEq:0.29,currentRatio:1.27,eps:11.85,fcfPerShare:13.20,divYield:0.0065,avgVol:19e6,peg:2.4,growthRate:0.15},
-    {symbol:'NVDA',name:'NVIDIA Corporation',sector:'Technology',price:131.38,change1d:2.43,marketCap:3.21e12,pe:52.3,pb:42.8,ps:22.1,evEbitda:39.4,roe:0.85,roa:0.48,grossMargin:0.748,netMargin:0.553,opMargin:0.619,debtEq:0.42,currentRatio:4.17,eps:2.51,fcfPerShare:2.38,divYield:0.0003,avgVol:190e6,peg:1.1,growthRate:0.80},
-    {symbol:'GOOGL',name:'Alphabet Inc.',sector:'Technology',price:178.74,change1d:-0.32,marketCap:2.19e12,pe:22.4,pb:6.8,ps:5.9,evEbitda:16.2,roe:0.30,roa:0.19,grossMargin:0.566,netMargin:0.261,opMargin:0.318,debtEq:0.07,currentRatio:1.84,eps:7.97,fcfPerShare:6.42,divYield:0,avgVol:22e6,peg:1.4,growthRate:0.14},
-    {symbol:'AMZN',name:'Amazon.com Inc.',sector:'Consumer Cyclical',price:205.61,change1d:0.67,marketCap:2.19e12,pe:45.1,pb:10.3,ps:3.2,evEbitda:24.7,roe:0.23,roa:0.09,grossMargin:0.476,netMargin:0.072,opMargin:0.108,debtEq:0.59,currentRatio:1.05,eps:4.56,fcfPerShare:5.11,divYield:0,avgVol:32e6,peg:1.9,growthRate:0.12},
-    {symbol:'META',name:'Meta Platforms',sector:'Technology',price:577.90,change1d:1.44,marketCap:1.47e12,pe:27.3,pb:8.9,ps:9.2,evEbitda:19.8,roe:0.33,roa:0.22,grossMargin:0.815,netMargin:0.337,opMargin:0.418,debtEq:0.28,currentRatio:2.73,eps:21.16,fcfPerShare:19.30,divYield:0.0032,avgVol:13e6,peg:1.2,growthRate:0.22},
-    {symbol:'TSLA',name:'Tesla Inc.',sector:'Consumer Cyclical',price:248.50,change1d:-1.20,marketCap:7.95e11,pe:68.1,pb:12.4,ps:7.8,evEbitda:46.3,roe:0.18,roa:0.07,grossMargin:0.176,netMargin:0.051,opMargin:0.075,debtEq:0.18,currentRatio:1.84,eps:3.65,fcfPerShare:1.50,divYield:0,avgVol:98e6,peg:4.2,growthRate:0.19},
-    {symbol:'JPM',name:'JPMorgan Chase',sector:'Financial Services',price:258.41,change1d:0.23,marketCap:7.40e11,pe:13.2,pb:2.18,ps:3.8,evEbitda:null,roe:0.161,roa:0.013,grossMargin:null,netMargin:0.291,opMargin:null,debtEq:null,currentRatio:null,eps:19.60,fcfPerShare:null,divYield:0.023,avgVol:8.5e6,peg:1.4,growthRate:0.07},
-    {symbol:'LLY',name:'Eli Lilly & Co.',sector:'Healthcare',price:896.30,change1d:-0.78,marketCap:8.53e11,pe:112.4,pb:51.2,ps:18.4,evEbitda:54.8,roe:0.521,roa:0.124,grossMargin:0.832,netMargin:0.167,opMargin:0.269,debtEq:2.71,currentRatio:1.04,eps:7.98,fcfPerShare:6.21,divYield:0.0062,avgVol:3e6,peg:1.8,growthRate:0.28},
-    {symbol:'V',name:'Visa Inc.',sector:'Financial Services',price:297.48,change1d:0.44,marketCap:6.17e11,pe:31.4,pb:14.9,ps:16.2,evEbitda:23.7,roe:0.441,roa:0.167,grossMargin:0.812,netMargin:0.515,opMargin:0.668,debtEq:1.72,currentRatio:1.38,eps:9.47,fcfPerShare:9.00,divYield:0.0082,avgVol:5.4e6,peg:2.1,growthRate:0.11},
-    {symbol:'XOM',name:'Exxon Mobil',sector:'Energy',price:111.23,change1d:-0.54,marketCap:4.42e11,pe:14.8,pb:2.1,ps:1.3,evEbitda:9.8,roe:0.143,roa:0.073,grossMargin:0.432,netMargin:0.091,opMargin:0.118,debtEq:0.21,currentRatio:1.44,eps:7.52,fcfPerShare:6.11,divYield:0.035,avgVol:14e6,peg:1.6,growthRate:0.05},
-    {symbol:'WMT',name:'Walmart Inc.',sector:'Consumer Defensive',price:97.84,change1d:0.31,marketCap:7.87e11,pe:41.2,pb:8.4,ps:1.0,evEbitda:19.3,roe:0.204,roa:0.068,grossMargin:0.243,netMargin:0.024,opMargin:0.044,debtEq:0.72,currentRatio:0.84,eps:2.37,fcfPerShare:2.10,divYield:0.012,avgVol:13e6,peg:3.1,growthRate:0.06},
-    {symbol:'JNJ',name:'Johnson & Johnson',sector:'Healthcare',price:157.82,change1d:-0.19,marketCap:3.80e11,pe:22.7,pb:4.8,ps:4.5,evEbitda:14.9,roe:0.213,roa:0.102,grossMargin:0.682,netMargin:0.198,opMargin:0.249,debtEq:0.56,currentRatio:1.12,eps:6.96,fcfPerShare:7.44,divYield:0.034,avgVol:7.2e6,peg:2.3,growthRate:0.06},
-    {symbol:'NFLX',name:'Netflix Inc.',sector:'Technology',price:1090.00,change1d:1.82,marketCap:4.65e11,pe:52.1,pb:18.3,ps:9.8,evEbitda:38.2,roe:0.352,roa:0.105,grossMargin:0.461,netMargin:0.187,opMargin:0.268,debtEq:0.73,currentRatio:1.22,eps:20.93,fcfPerShare:18.50,divYield:0,avgVol:2.4e6,peg:1.9,growthRate:0.15},
-    {symbol:'BAC',name:'Bank of America',sector:'Financial Services',price:44.21,change1d:-0.18,marketCap:3.44e11,pe:14.1,pb:1.4,ps:3.1,evEbitda:null,roe:0.094,roa:0.009,grossMargin:null,netMargin:0.219,opMargin:null,debtEq:null,currentRatio:null,eps:3.14,fcfPerShare:null,divYield:0.024,avgVol:34e6,peg:1.6,growthRate:0.08},
-    {symbol:'KO',name:'Coca-Cola Co.',sector:'Consumer Defensive',price:71.20,change1d:0.12,marketCap:3.07e11,pe:27.8,pb:10.2,ps:5.8,evEbitda:21.3,roe:0.384,roa:0.091,grossMargin:0.608,netMargin:0.209,opMargin:0.280,debtEq:1.83,currentRatio:1.05,eps:2.56,fcfPerShare:2.30,divYield:0.030,avgVol:12e6,peg:3.2,growthRate:0.05},
-    {symbol:'PEP',name:'PepsiCo Inc.',sector:'Consumer Defensive',price:131.50,change1d:-0.22,marketCap:1.81e11,pe:21.4,pb:8.7,ps:2.3,evEbitda:16.4,roe:0.502,roa:0.104,grossMargin:0.538,netMargin:0.108,opMargin:0.155,debtEq:2.43,currentRatio:0.79,eps:6.14,fcfPerShare:5.80,divYield:0.037,avgVol:5.9e6,peg:2.8,growthRate:0.04},
-    {symbol:'MCD',name:"McDonald's Corp.",sector:'Consumer Cyclical',price:294.10,change1d:0.55,marketCap:2.11e11,pe:24.3,pb:null,ps:9.4,evEbitda:19.7,roe:null,roa:0.126,grossMargin:0.568,netMargin:0.386,opMargin:0.487,debtEq:null,currentRatio:0.48,eps:12.10,fcfPerShare:11.40,divYield:0.025,avgVol:2.8e6,peg:2.5,growthRate:0.06},
-    {symbol:'GS',name:'Goldman Sachs',sector:'Financial Services',price:582.30,change1d:0.88,marketCap:1.89e11,pe:16.2,pb:1.72,ps:2.9,evEbitda:null,roe:0.106,roa:0.009,grossMargin:null,netMargin:0.179,opMargin:null,debtEq:null,currentRatio:null,eps:35.97,fcfPerShare:null,divYield:0.022,avgVol:1.6e6,peg:1.3,growthRate:0.09},
-    {symbol:'COST',name:'Costco Wholesale',sector:'Consumer Defensive',price:918.40,change1d:0.67,marketCap:4.08e11,pe:56.8,pb:16.4,ps:1.6,evEbitda:34.2,roe:0.289,roa:0.085,grossMargin:0.126,netMargin:0.028,opMargin:0.036,debtEq:0.43,currentRatio:0.94,eps:16.18,fcfPerShare:15.10,divYield:0.005,avgVol:1.8e6,peg:3.8,growthRate:0.08},
-  ].map(s=>({...s, fairPrice:calcFair(s)}));
-
-  allData = DEMO;
-  (() => {
-    const secs = [...new Set(allData.map(s=>s.sector).filter(Boolean))].sort();
-    const sel = document.getElementById('filter-sector');
-    sel.innerHTML = '<option value="">Todos os setores</option>'+secs.map(s=>`<option value="${s}">${s}</option>`).join('');
-    renderTable();
-  })();
+  // ─── AUTO-CARREGA AS 10 MAIORES AO ABRIR ───────────────────────────────────
+  // Sem dados demo — carrega dados reais imediatamente
+  window.addEventListener('DOMContentLoaded', () => {
+    loadData();
+  });
   </script>
 </body>
 </html>
