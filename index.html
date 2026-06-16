@@ -867,11 +867,9 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
 
     function parseStock(d) {
       if (!d || !d.symbol) return null;
-
       const growthRate = (d.revenueGrowth != null && d.revenueGrowth > 0)
         ? Math.min(d.revenueGrowth, 0.30)
         : (d.pe && d.pe > 8.5 ? Math.min((d.pe - 8.5) / 200, 0.30) : 0.08);
-
       const s = {
         symbol:      d.symbol,
         name:        d.name        || d.symbol,
@@ -901,34 +899,28 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
       return s;
     }
 
-    const PARALLEL = 5;
     const total = TICKERS.length;
 
-    for (let i = 0; i < total; i += PARALLEL) {
-      const batch = TICKERS.slice(i, i + PARALLEL);
-      const pct   = Math.round((i / total) * 100);
-      progText.textContent = `${i+1}–${Math.min(i+PARALLEL,total)}/${total} — ${allData.length} carregadas`;
+    for (let i = 0; i < total; i++) {
+      const sym = TICKERS[i];
+      const pct = Math.round((i / total) * 100);
+      progText.textContent = `${i+1}/${total} — ${sym} — ${allData.length} carregadas`;
       progFill.style.width = Math.max(pct, 1) + '%';
 
-      const results = await Promise.all(
-        batch.map(sym =>
-          fetch(`${WORKER_URL}?symbol=${sym}`)
-            .then(r => r.ok ? r.json() : null)
-            .catch(() => null)
-        )
-      );
+      try {
+        const r = await fetch(`${WORKER_URL}?symbol=${sym}`);
+        if (r.ok) {
+          const d = await r.json();
+          const parsed = parseStock(d);
+          if (parsed) {
+            allData.push(parsed);
+            if (allData.length % 5 === 0) updateUI();
+          }
+        }
+      } catch(e) {}
 
-      for (const d of results) {
-        if (!d || !d.symbol) continue;
-        const parsed = parseStock(d);
-        if (parsed) allData.push(parsed);
-      }
-
-      updateUI();
-
-      if (i + PARALLEL < total) {
-        await new Promise(r => setTimeout(r, 1200));
-      }
+      // 1 empresa por segundo = 60/min, dentro do limite do Finnhub free
+      await new Promise(r => setTimeout(r, 1000));
     }
 
     prog.style.display = 'none';
