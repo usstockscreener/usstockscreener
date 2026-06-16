@@ -1,4 +1,4 @@
-[index (11).html](https://github.com/user-attachments/files/28979200/index.11.html)
+[index (12).html](https://github.com/user-attachments/files/28979263/index.12.html)
 <!DOCTYPE html>
 <html lang="pt-BR" style="background:#1a2744">
 <head>
@@ -819,7 +819,8 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
 
   // ─── CARREGAR DADOS REAIS (YAHOO FINANCE) ───────────────────────────────────
   async function loadData() {
-    const FMP_KEY = 'hgwzqp0aVIJ25XEy54wNiaWfXYmO3I74';
+    const FMP_KEY  = 'hgwzqp0aVIJ25XEy54wNiaWfXYmO3I74';
+    const FMP_BASE = 'https://financialmodelingprep.com/stable';
 
     allData = [];
     currentPage = 1;
@@ -828,7 +829,7 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
     const progText = document.getElementById('load-progress-text');
     const progFill = document.getElementById('load-progress-fill');
     prog.style.display = 'block';
-    progText.textContent = 'Conectando...';
+    progText.textContent = 'Conectando à FMP...';
     progFill.style.width = '2%';
 
     function updateUI() {
@@ -843,99 +844,143 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
       renderTable();
     }
 
-    // FMP /v3/quote/{symbols} — retorna array com todos os campos necessários
+    // Parse quote da FMP /stable/quote
     function parseFMP(q) {
       if (!q || !q.symbol) return null;
       const s = {
         symbol:      q.symbol,
-        name:        q.name       || q.symbol,
-        sector:      q.sector     || null,
-        price:       q.price      || 0,
+        name:        q.name         || q.symbol,
+        sector:      q.sector       || null,
+        price:       q.price        || 0,
         change1d:    q.changesPercentage || 0,
-        marketCap:   q.marketCap  || 0,
-        pe:          q.pe         || null,
+        marketCap:   q.marketCap    || 0,
+        pe:          q.pe           || null,
         pb:          q.priceToBookRatio || null,
         ps:          q.priceToSalesRatio || null,
         evEbitda:    q.enterpriseValueMultiple || null,
-        roe:         q.returnOnEquityTTM != null ? q.returnOnEquityTTM / 100 : null,
-        roa:         q.returnOnAssetsTTM != null ? q.returnOnAssetsTTM / 100 : null,
+        roe:         q.returnOnEquityTTM  != null ? q.returnOnEquityTTM  / 100 : null,
+        roa:         q.returnOnAssetsTTM  != null ? q.returnOnAssetsTTM  / 100 : null,
         grossMargin: q.grossProfitMarginTTM != null ? q.grossProfitMarginTTM / 100 : null,
-        netMargin:   q.netProfitMarginTTM  != null ? q.netProfitMarginTTM  / 100 : null,
+        netMargin:   q.netProfitMarginTTM   != null ? q.netProfitMarginTTM  / 100 : null,
         opMargin:    q.operatingProfitMarginTTM != null ? q.operatingProfitMarginTTM / 100 : null,
-        debtEq:      q.debtToEquityRatio   || null,
-        currentRatio:q.currentRatio        || null,
-        eps:         q.eps                 || null,
-        fcfPerShare: q.freeCashFlowPerShare || null,
+        debtEq:      q.debtToEquityRatio    || null,
+        currentRatio:q.currentRatio         || null,
+        eps:         q.eps                  || null,
+        fcfPerShare: q.freeCashFlowPerShare  || null,
         divYield:    q.dividendYield != null ? q.dividendYield / 100 : null,
-        avgVol:      q.avgVolume           || null,
-        peg:         q.pegRatio            || null,
+        avgVol:      q.avgVolume             || null,
+        peg:         q.pegRatio              || null,
         growthRate:  q.revenueGrowthTTM != null ? q.revenueGrowthTTM / 100 : 0.08
       };
       s.fairPrice = calcFair(s);
       return s;
     }
 
-    // FMP aceita até 50 símbolos por request separados por vírgula
-    async function fetchFMP(tickers) {
+    // Parse profile da FMP /stable/profile (traz setor, nome completo etc)
+    function parseProfile(p) {
+      return {
+        sector:      p.sector      || null,
+        name:        p.companyName || null,
+        grossMargin: p.grossProfitMarginTTM != null ? p.grossProfitMarginTTM / 100 : null,
+        netMargin:   p.netProfitMarginTTM   != null ? p.netProfitMarginTTM   / 100 : null,
+        roe:         p.returnOnEquityTTM    != null ? p.returnOnEquityTTM    / 100 : null,
+        roa:         p.returnOnAssetsTTM    != null ? p.returnOnAssetsTTM    / 100 : null,
+      };
+    }
+
+    // Busca lote de quotes: GET /stable/quote?symbol=AAPL,MSFT,...
+    async function fetchQuotes(tickers) {
       const syms = tickers.join(',');
-      const url  = `https://financialmodelingprep.com/api/v3/quote/${syms}?apikey=${FMP_KEY}`;
+      const url  = `${FMP_BASE}/quote?symbol=${syms}&apikey=${FMP_KEY}`;
       try {
-        const r = await fetch(url);
+        const r    = await fetch(url);
+        const text = await r.text();
+        if (!r.ok) {
+          progText.textContent = `Erro ${r.status}: ${text.slice(0, 100)}`;
+          return [];
+        }
+        const data = JSON.parse(text);
+        if (!Array.isArray(data)) {
+          progText.textContent = `Resposta inesperada: ${text.slice(0, 100)}`;
+          return [];
+        }
+        return data;
+      } catch(e) {
+        progText.textContent = `Erro de conexão: ${e.message}`;
+        return [];
+      }
+    }
+
+    // Busca perfis para obter setor e mais detalhes
+    async function fetchProfiles(tickers) {
+      const syms = tickers.join(',');
+      const url  = `${FMP_BASE}/profile?symbol=${syms}&apikey=${FMP_KEY}`;
+      try {
+        const r    = await fetch(url);
         if (!r.ok) return [];
         const data = await r.json();
-        if (!Array.isArray(data)) return [];
-        return data;
+        return Array.isArray(data) ? data : [];
       } catch(e) { return []; }
     }
 
-    // Lotes de 50 (FMP suporta até 50 por request)
+    // Lotes de 50 por request
     const BATCH = 50;
     const batches = [];
     for (let i = 0; i < TICKERS.length; i += BATCH) {
       batches.push(TICKERS.slice(i, i + BATCH));
     }
 
+    // 1. Carrega quotes (preço, P/L, etc)
     for (let b = 0; b < batches.length; b++) {
       const pct = Math.round(((b + 1) / batches.length) * 100);
-      progText.textContent = `Carregando... ${pct}% — ${allData.length} empresas prontas`;
-      progFill.style.width = Math.max(pct, 5) + '%';
+      progText.textContent = `Quotes ${b+1}/${batches.length} — ${allData.length} empresas prontas`;
+      progFill.style.width = Math.max(Math.round(pct * 0.6), 5) + '%'; // 0-60%
 
-      const results = await fetchFMP(batches[b]);
+      const results = await fetchQuotes(batches[b]);
       for (const q of results) {
         if (q?.symbol && !allData.find(x => x.symbol === q.symbol)) {
           const parsed = parseFMP(q);
           if (parsed) allData.push(parsed);
         }
       }
-
       updateUI();
-      await new Promise(r => setTimeout(r, 300));
+      await new Promise(r => setTimeout(r, 250));
     }
 
-    // FMP /quote não traz setor — busca perfil das empresas sem setor
+    // 2. Carrega perfis para pegar setor de quem não tem
     const semSetor = allData.filter(s => !s.sector).map(s => s.symbol);
-    if (semSetor.length > 0) {
-      try {
-        const profileUrl = `https://financialmodelingprep.com/api/v3/profile/${semSetor.slice(0,50).join(',')}?apikey=${FMP_KEY}`;
-        const rp = await fetch(profileUrl);
-        if (rp.ok) {
-          const profiles = await rp.json();
-          if (Array.isArray(profiles)) {
-            profiles.forEach(p => {
-              const s = allData.find(x => x.symbol === p.symbol);
-              if (s && p.sector) s.sector = p.sector;
-            });
-          }
+    const profileBatches = [];
+    for (let i = 0; i < semSetor.length; i += BATCH) profileBatches.push(semSetor.slice(i, i+BATCH));
+
+    for (let b = 0; b < profileBatches.length; b++) {
+      const pct = 60 + Math.round(((b + 1) / Math.max(profileBatches.length, 1)) * 40);
+      progText.textContent = `Perfis ${b+1}/${profileBatches.length} — buscando setores...`;
+      progFill.style.width = pct + '%';
+
+      const profiles = await fetchProfiles(profileBatches[b]);
+      for (const p of profiles) {
+        const s = allData.find(x => x.symbol === p.symbol);
+        if (s) {
+          const info = parseProfile(p);
+          if (info.sector)      s.sector      = info.sector;
+          if (info.name)        s.name        = info.name;
+          if (!s.grossMargin && info.grossMargin) s.grossMargin = info.grossMargin;
+          if (!s.netMargin   && info.netMargin)   s.netMargin   = info.netMargin;
+          if (!s.roe         && info.roe)         s.roe         = info.roe;
+          if (!s.roa         && info.roa)         s.roa         = info.roa;
+          s.fairPrice = calcFair(s); // recalcula com dados completos
         }
-      } catch(e) {}
+      }
       updateUI();
+      await new Promise(r => setTimeout(r, 250));
     }
 
     prog.style.display = 'none';
+    progFill.style.width = '100%';
     updateUI();
     document.getElementById('s-updated').textContent =
       new Date().toLocaleTimeString('pt-BR') +
-      (allData.length > 0 ? ' · FMP' : ' · erro — verifique conexão');
+      (allData.length > 0 ? ' · FMP ✓' : ' · sem dados');
   }
   // ─── AUTO-CARREGA AS 10 MAIORES AO ABRIR ───────────────────────────────────
   // Sem dados demo — carrega dados reais imediatamente
