@@ -917,7 +917,7 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
       } catch(e) {}
 
       // 1 empresa por segundo = 60/min, dentro do limite do Finnhub free
-      await new Promise(r => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 2000)); // 2s = 30 req/min, dentro do limite Finnhub
     }
 
     prog.style.display = 'none';
