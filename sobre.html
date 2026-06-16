@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sobre — US Stock Screener</title>
+  <meta name="description" content="Sobre o US Stock Screener — ferramenta gratuita de análise fundamentalista das maiores ações americanas.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { background: #1a2744; color: #E2E8F5; font-family: 'Inter', sans-serif; min-height: 100vh; }
+    .container { max-width: 720px; margin: 0 auto; padding: 3rem 1.5rem; }
+    h1 { font-size: 28px; font-weight: 600; color: #4F8EF7; margin-bottom: 0.5rem; }
+    h2 { font-size: 18px; font-weight: 500; margin: 2rem 0 0.75rem; color: #E2E8F5; }
+    p { font-size: 15px; line-height: 1.8; color: #7E8DB0; margin-bottom: 1rem; }
+    a { color: #4F8EF7; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .nav { margin-bottom: 2rem; font-size: 13px; color: #4A5578; }
+    .nav a { color: #4F8EF7; }
+    hr { border: none; border-top: 1px solid #222C4A; margin: 2rem 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav"><a href="index.html">← Voltar ao Screener</a></div>
+    <h1>Sobre o US Stock Screener</h1>
+    <p>Última atualização: junho de 2025</p>
+    <hr>
+
+    <h2>O que é</h2>
+    <p>O US Stock Screener é uma ferramenta gratuita de análise fundamentalista das maiores empresas listadas na bolsa americana. Ele reúne os principais indicadores financeiros — P/L, P/VP, ROE, EV/EBITDA, margens e mais — e calcula um preço justo estimado por Fluxo de Caixa Descontado (DCF) para cada ação.</p>
+
+    <h2>Para quem é</h2>
+    <p>Para investidores individuais, estudantes de finanças e qualquer pessoa que queira ter uma visão rápida e organizada dos fundamentos das maiores empresas americanas sem pagar por ferramentas caras.</p>
+
+    <h2>Como funciona</h2>
+    <p>Os dados são obtidos em tempo real via API do Finnhub. O preço justo é calculado por um modelo simplificado de DCF usando a taxa de desconto de 10% ao ano, crescimento estimado baseado nos dados históricos da empresa e múltiplo terminal de 15x.</p>
+    <p>O cálculo é uma estimativa educacional e não substitui uma análise profissional detalhada.</p>
+
+    <h2>Metodologia DCF</h2>
+    <p>O Fluxo de Caixa Descontado (DCF) projeta os lucros futuros da empresa e os traz a valor presente usando uma taxa de desconto. No nosso modelo:</p>
+    <p>• Taxa de desconto: 10% ao ano (custo de capital estimado)<br>
+    • Período de projeção: 10 anos<br>
+    • Taxa de crescimento: baseada no crescimento histórico de receita da empresa<br>
+    • Múltiplo terminal: 15x (valor residual após os 10 anos)<br>
+    • Base de cálculo: EPS (lucro por ação) ou FCF por ação, o que estiver disponível</p>
+    <p>Uma margem de segurança acima de 15% indica que a ação pode estar subvalorizada em relação ao modelo. Abaixo de -15%, possivelmente sobrevalorizada.</p>
+
+    <h2>Contato</h2>
+    <p>Para dúvidas, sugestões ou parcerias: <a href="mailto:calheirospereira2@gmail.com">calheirospereira2@gmail.com</a></p>
+
+    <hr>
+    <p style="font-size:12px">
+      <a href="index.html">Screener</a> &nbsp;·&nbsp;
+      <a href="privacidade.html">Política de Privacidade</a> &nbsp;·&nbsp;
+      <a href="aviso-legal.html">Aviso Legal</a>
+    </p>
+  </div>
+</body>
+</html>
