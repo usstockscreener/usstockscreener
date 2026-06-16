@@ -341,9 +341,7 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
   <!-- ██████████  CONTROLES  ██████████ -->
   <div class="controls">
     <input type="text" id="search" placeholder="🔍  Buscar por ticker ou nome..." oninput="renderTable()">
-    <select id="filter-sector" onchange="renderTable()">
-      <option value="">Todos os setores</option>
-    </select>
+
     <select id="filter-verdict" onchange="renderTable()">
       <option value="">Todos os veredictos</option>
       <option value="sub">Subvalorizada</option>
@@ -412,7 +410,7 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
         <tr>
           <th data-col="symbol">Ticker</th>
           <th data-col="name">Empresa</th>
-          <th data-col="sector">Setor</th>
+          
           <th data-col="price">Preço</th>
           <th data-col="fairPrice">Preço Justo (DCF) ↔ Termômetro</th>
           <th data-col="change1d">1D %</th>
@@ -423,7 +421,7 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
           <th data-col="evEbitda">EV/EBITDA</th>
           <th data-col="roe">ROE</th>
           <th data-col="netMargin">Margem Liq.</th>
-          <th data-col="divYield">Yield</th>
+          
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
@@ -646,7 +644,6 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
       return `<tr onclick="openModal('${s.symbol}')">
         <td class="sym">${s.symbol}</td>
         <td><div class="name-cell">${s.name||'—'}</div></td>
-        <td><span class="sec-badge">${s.sector||'—'}</span></td>
         <td style="font-family:'DM Mono',monospace;font-weight:500">$${(s.price||0).toFixed(2)}</td>
         <td>${thermCell(s.price, s.fairPrice)}</td>
         <td class="${cc}">${cs}${fmt(s.change1d)}%</td>
@@ -761,7 +758,7 @@ input[type=text], select { background-color: #243460 !important; color: #E2E8F5 
             <div class="mc"><div class="lbl">Preço atual</div><div class="val">$${(s.price||0).toFixed(2)}</div></div>
             <div class="mc"><div class="lbl">Variação 1D</div><div class="val ${(s.change1d||0)>=0?'up':'dn'}">${((s.change1d||0)>=0?'+':'')+fmt(s.change1d)}%</div></div>
             <div class="mc"><div class="lbl">Market Cap</div><div class="val sm">${fmtB(s.marketCap)}</div></div>
-            <div class="mc"><div class="lbl">Dividend Yield</div><div class="val sm">${s.divYield?fmtP(s.divYield):'—'}</div></div>
+            
           </div>
 
           <div class="sec-title">Valuation</div>
